@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
-from models.auth import EmailCheck
-from services.supabase_service import supabase
+from app.models.auth import EmailCheck
+from app.services.supabase_service import supabase
 import logging
 
 router = APIRouter()

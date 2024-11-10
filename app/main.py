@@ -174,10 +174,11 @@ async def create_auth_user(user_data: dict):
         source = user_data.get("source", "signup")
         logger.debug(f"Signup source: {source}")
         
-        # Generate random password for form submissions
+        # For form submissions (free class, contact), generate temp password
         is_form_signup = source in ['free_class', 'contact']
-        temp_password = secrets.token_urlsafe(8) if is_form_signup else user_data.get("password")
+        temp_password = secrets.token_urlsafe(12) if is_form_signup else user_data.get("password")
         
+        # First create the auth user
         auth_response = supabase.auth.sign_up({
             "email": user_data["email"],
             "password": temp_password,
@@ -188,24 +189,27 @@ async def create_auth_user(user_data: dict):
                     "healthConditions": user_data.get("healthConditions"),
                     "interest": user_data.get("interest"),
                     "source": source
-                },
-                # Send password reset for form signups, email confirmation for regular signups
-                "email_redirect_to": f"{FRONTEND_URL}/reset-password" if is_form_signup else f"{FRONTEND_URL}/auth",
-                "email_template": "reset_password" if is_form_signup else "signup"
+                }
             }
         })
 
         if not auth_response.user:
             raise HTTPException(status_code=400, detail="Failed to create auth user")
-            
-        # For form signups, trigger password reset flow
-        if is_form_signup:
-            supabase.auth.reset_password_email(user_data["email"], {
-                "redirect_to": f"{FRONTEND_URL}/reset-password"
-            })
-            logger.info(f"Password reset email sent to: {user_data['email']}")
 
-        # Create user in database tables
+        # For form signups, immediately trigger password reset
+        if is_form_signup:
+            try:
+                reset_response = supabase.auth.admin.generate_link({
+                    "type": "recovery",
+                    "email": user_data["email"],
+                    "redirect_to": f"{FRONTEND_URL}/reset-password"
+                })
+                logger.info(f"Password reset link generated for: {user_data['email']}")
+            except Exception as e:
+                logger.error(f"Failed to generate password reset link: {str(e)}")
+                # Continue execution as user is already created
+
+        # Create user in database
         await create_user(UserCreate(
             userId=auth_response.user.id,
             email=user_data["email"],

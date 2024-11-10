@@ -171,17 +171,11 @@ async def create_user(user: UserCreate):
 @app.post("/api/auth/signup")
 async def create_auth_user(user_data: dict):
     try:
+        # Get source from user_data, default to 'signup'
         source = user_data.get("source", "signup")
+        logger.debug(f"Signup source: {source}")
         
-        # Choose template and redirect URL based on source
-        if source in ["free_class", "sticky_header", "get_started"]:
-            email_template = "reset_password"  # Matches exactly with Supabase template name
-            redirect_to = f"{FRONTEND_URL}/reset-password"
-        else:
-            email_template = "confirm_signup"  # Matches exactly with Supabase template name
-            redirect_to = f"{FRONTEND_URL}/auth"
-        
-        # Create auth user with correct template parameter
+        # Create auth user with Supabase's default confirmation email
         auth_response = supabase.auth.sign_up({
             "email": user_data["email"],
             "password": user_data.get("password") or secrets.token_urlsafe(8),
@@ -193,13 +187,14 @@ async def create_auth_user(user_data: dict):
                     "interest": user_data.get("interest"),
                     "source": source
                 },
-                "email_redirect_to": redirect_to,
-                "email_template": email_template  # Changed back to email_template
+                "email_redirect_to": f"{FRONTEND_URL}/auth"  # Always redirect to auth page
             }
         })
 
         if not auth_response.user:
             raise HTTPException(status_code=400, detail="Failed to create auth user")
+            
+        logger.info(f"Auth user created successfully: {user_data['email']}")
 
         # Create user in database tables
         await create_user(UserCreate(

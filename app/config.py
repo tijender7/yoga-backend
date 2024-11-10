@@ -68,7 +68,10 @@ PAYMENT_STATUS_MAP = {
 }
 
 # Add FRONTEND_URL to our config
-FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+FRONTEND_URL = os.getenv('FRONTEND_URL')
+if not FRONTEND_URL:
+    FRONTEND_URL = 'http://localhost:3000' if IS_DEVELOPMENT else 'https://yogforever.com'
+logger.info(f"[CONFIG] FRONTEND_URL set to: {FRONTEND_URL}")
 
 # Currency configuration
 CURRENCY_CONFIGS = {

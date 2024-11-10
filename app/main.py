@@ -84,86 +84,14 @@ async def create_payment_endpoint(payment_data: dict):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/razorpay-webhook")
-async def payment_webhook(request: Request):
+async def razorpay_webhook(request: Request):
     try:
         payload = await request.json()
-        webhook_data = WebhookPayload(**payload)
-        logger.info(f"Received webhook payload: {payload}")
-        
-        if webhook_data.event.startswith('payment.'):
-            payment_entity = webhook_data.payload.get('payment', {}).get('entity')
-            if payment_entity:
-                payment_id = payment_entity.get('id')
-                order_id = payment_entity.get('order_id')
-                
-                # Convert amount based on currency
-                amount = payment_entity.get('amount', 0)
-                currency = payment_entity.get('currency', 'INR')
-                
-                # Convert from lowest denomination to actual amount
-                converted_amount = amount / 100  # Since all currencies use 100 as base
-                
-                # Try to get user_id from payment entity
-                user_id = None
-                
-                # Get the email from payment entity
-                email = payment_entity.get('email')
-                if email:
-                    # Try to get user by email
-                    user_result = supabase.table('users')\
-                        .select('id')\
-                        .eq('email', email)\
-                        .execute()
-                    if user_result.data:
-                        user_id = user_result.data[0].get('id')
-                        logger.info(f"Found user_id {user_id} for email {email}")
-                
-                if payment_id:
-                    # Check for existing payment
-                    existing_payment = supabase.table('payments')\
-                        .select('*')\
-                        .eq('razorpay_payment_id', payment_id)\
-                        .execute()
-                    
-                    payment_data = {
-                        'razorpay_payment_id': payment_id,
-                        'status': PAYMENT_STATUS_MAP.get(payment_entity['status'], 'pending'),
-                        'amount': converted_amount,  # Store converted amount
-                        'currency': currency,
-                        'payment_method': 'razorpay',
-                        'payment_details': payment_entity,
-                        'order_id': order_id,
-                        'updated_at': datetime.now().isoformat()
-                    }
-                    
-                    # Only add user_id if we found one
-                    if user_id:
-                        payment_data['user_id'] = user_id
-                    
-                    logger.info(f"Processing payment with data: {payment_data}")
-                    
-                    if existing_payment.data:
-                        result = supabase.table('payments')\
-                            .update(payment_data)\
-                            .eq('razorpay_payment_id', payment_id)\
-                            .execute()
-                        logger.info(f"Payment updated: {payment_id}")
-                    else:
-                        result = supabase.table('payments')\
-                            .insert(payment_data)\
-                            .execute()
-                        logger.info(f"New payment created: {payment_id}")
-                    
-                    return JSONResponse(
-                        status_code=200,
-                        content={"status": "success", "payment_id": payment_id}
-                    )
-        
-        return JSONResponse(status_code=200, content={"status": "success"})
-                    
+        logger.info(f"Received webhook: {payload}")
+        return {"status": "success"}
     except Exception as e:
-        logger.error(f"Webhook processing failed: {str(e)}")
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.error(f"Webhook error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 def handle_webhook_error(e: Exception) -> JSONResponse:
     error_message = str(e)

@@ -19,6 +19,7 @@ load_dotenv()
 # config.py mein ya main file ke top par
 ENVIRONMENT = os.getenv('ENVIRONMENT', 'production')
 DEBUG = ENVIRONMENT == 'development'
+IS_DEVELOPMENT = DEBUG
 
 print(f"ENVIRONMENT: {ENVIRONMENT}")  # Debug ke liye
 print(f"IS_DEVELOPMENT: {DEBUG}")  # Debug ke liye

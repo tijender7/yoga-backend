@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, Request
 from app.services.razorpay_service import create_payment_link
 from fastapi.middleware.cors import CORSMiddleware
 import logging
-from app.config import FRONTEND_URL, IS_DEVELOPMENT, PAYMENT_STATUS_MAP, RAZORPAY_CALLBACK_URL
+from app.config import AUTH_REDIRECT_URL, FRONTEND_URL, IS_DEVELOPMENT, PAYMENT_STATUS_MAP, RAZORPAY_CALLBACK_URL
 from datetime import datetime
 from app.services.supabase_service import supabase
 from fastapi.responses import JSONResponse
@@ -187,7 +187,7 @@ async def create_auth_user(user_data: dict):
                     "interest": user_data.get("interest"),
                     "source": source
                 },
-                "email_redirect_to": f"{FRONTEND_URL}/auth"  # Always redirect to auth page
+                "email_redirect_to": AUTH_REDIRECT_URL  # Use configured redirect URL
             }
         })
 

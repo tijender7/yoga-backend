@@ -67,11 +67,18 @@ PAYMENT_STATUS_MAP = {
     'refunded': 'refunded'
 }
 
-# Add FRONTEND_URL to our config
+# Add FRONTEND_URL and AUTH_REDIRECT_URL
 FRONTEND_URL = os.getenv('FRONTEND_URL')
+AUTH_REDIRECT_URL = os.getenv('AUTH_REDIRECT_URL')
+
 if not FRONTEND_URL:
     FRONTEND_URL = 'http://localhost:3000' if IS_DEVELOPMENT else 'https://yogforever.com'
+    
+if not AUTH_REDIRECT_URL:
+    AUTH_REDIRECT_URL = f"{FRONTEND_URL}/auth"
+
 logger.info(f"[CONFIG] FRONTEND_URL set to: {FRONTEND_URL}")
+logger.info(f"[CONFIG] AUTH_REDIRECT_URL set to: {AUTH_REDIRECT_URL}")
 
 # Currency configuration
 CURRENCY_CONFIGS = {

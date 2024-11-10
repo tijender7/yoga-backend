@@ -36,8 +36,7 @@ RAZORPAY_CALLBACK_URL = f"{API_BASE_URL}/razorpay-webhook"
 
 # Supabase credentials (existing setup)
 SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-
+SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")  # Use anon key
 
 # Razorpay credentials
 RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID")

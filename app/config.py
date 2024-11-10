@@ -71,11 +71,12 @@ PAYMENT_STATUS_MAP = {
 FRONTEND_URL = os.getenv('FRONTEND_URL')
 AUTH_REDIRECT_URL = os.getenv('AUTH_REDIRECT_URL')
 
+# Remove localhost fallback
 if not FRONTEND_URL:
-    FRONTEND_URL = 'http://localhost:3000' if IS_DEVELOPMENT else 'https://yogforever.com'
+    FRONTEND_URL = 'https://yogforever.com'
     
 if not AUTH_REDIRECT_URL:
-    AUTH_REDIRECT_URL = f"{FRONTEND_URL}/auth"
+    AUTH_REDIRECT_URL = 'https://yogforever.com/auth'
 
 logger.info(f"[CONFIG] FRONTEND_URL set to: {FRONTEND_URL}")
 logger.info(f"[CONFIG] AUTH_REDIRECT_URL set to: {AUTH_REDIRECT_URL}")

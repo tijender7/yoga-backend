@@ -171,14 +171,16 @@ async def create_user(user: UserCreate):
 @app.post("/api/auth/signup")
 async def create_auth_user(user_data: dict):
     try:
-        # Get source from user_data, default to 'signup'
         source = user_data.get("source", "signup")
         logger.debug(f"Signup source: {source}")
         
-        # Create auth user with Supabase's default confirmation email
+        # Generate random password for form submissions
+        is_form_signup = source in ['free_class', 'contact']
+        temp_password = secrets.token_urlsafe(8) if is_form_signup else user_data.get("password")
+        
         auth_response = supabase.auth.sign_up({
             "email": user_data["email"],
-            "password": user_data.get("password") or secrets.token_urlsafe(8),
+            "password": temp_password,
             "options": {
                 "data": {
                     "full_name": user_data["name"],
@@ -187,14 +189,21 @@ async def create_auth_user(user_data: dict):
                     "interest": user_data.get("interest"),
                     "source": source
                 },
-                "email_redirect_to": AUTH_REDIRECT_URL  # Use configured redirect URL
+                # Send password reset for form signups, email confirmation for regular signups
+                "email_redirect_to": f"{FRONTEND_URL}/reset-password" if is_form_signup else f"{FRONTEND_URL}/auth",
+                "email_template": "reset_password" if is_form_signup else "signup"
             }
         })
 
         if not auth_response.user:
             raise HTTPException(status_code=400, detail="Failed to create auth user")
             
-        logger.info(f"Auth user created successfully: {user_data['email']}")
+        # For form signups, trigger password reset flow
+        if is_form_signup:
+            supabase.auth.reset_password_email(user_data["email"], {
+                "redirect_to": f"{FRONTEND_URL}/reset-password"
+            })
+            logger.info(f"Password reset email sent to: {user_data['email']}")
 
         # Create user in database tables
         await create_user(UserCreate(

@@ -175,9 +175,17 @@ async def create_auth_user(user_data: dict):
         logger.debug(f"Signup source: {source}")
         
         # For form submissions (free class, contact), generate temp password
-        is_form_signup = source in ['free_class', 'contact']
-        temp_password = secrets.token_urlsafe(12) if is_form_signup else user_data.get("password")
-        
+        is_form_signup = source in ['free_class', 'contact', 'sticky_header']
+        temp_password = ''
+
+        if is_form_signup:
+            temp_password = secrets.token_urlsafe(12)
+            logger.info(f"Generated temp password for form signup: {user_data['email']}")
+        else:
+            temp_password = user_data.get("password")
+            if not temp_password:
+                raise HTTPException(status_code=400, detail="Password required for direct signup")
+
         # First create the auth user
         auth_response = supabase.auth.sign_up({
             "email": user_data["email"],

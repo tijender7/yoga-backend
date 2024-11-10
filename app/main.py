@@ -191,7 +191,7 @@ async def health_check():
     return {
         "status": "healthy",
         "webhook_url": RAZORPAY_CALLBACK_URL,
-        "environment": "development" if IS_DEVELOPMENT else "production"
+        "environment": "production"
     }
 
 @app.post("/api/create-user")

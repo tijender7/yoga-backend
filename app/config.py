@@ -29,11 +29,9 @@ logging.basicConfig(
     filename='production.log' if not DEBUG else None
 )
 
-API_BASE_URL = os.getenv('API_BASE_URL', 'http://localhost:8000')
-NGROK_URL = os.getenv("NGROK_URL")
-if not NGROK_URL:
-    raise ValueError("NGROK_URL must be set in the environment variables")
-RAZORPAY_CALLBACK_URL = f"{NGROK_URL}/razorpay-webhook"
+# Use actual domain in production
+API_BASE_URL = os.getenv('API_BASE_URL', 'https://api.yogforever.com')
+RAZORPAY_CALLBACK_URL = f"{API_BASE_URL}/razorpay-webhook"
 
 # Supabase credentials (existing setup)
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -54,10 +52,10 @@ logger = logging.getLogger(__name__)
 logger.info("Payment gateway configuration loaded successfully")
 
 # Validation add karein
-if not NGROK_URL:
-    raise ValueError("NGROK_URL must be set in the environment variables")
+if not API_BASE_URL:
+    raise ValueError("API_BASE_URL must be set in the environment variables")
 
-logger.info(f"[CONFIG] NGROK_URL set to: {NGROK_URL}")
+logger.info(f"[CONFIG] API_BASE_URL set to: {API_BASE_URL}")
 logger.info(f"[CONFIG] RAZORPAY_CALLBACK_URL set to: {RAZORPAY_CALLBACK_URL}")
 
 # Payment status mapping

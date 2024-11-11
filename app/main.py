@@ -12,7 +12,7 @@ from typing import Optional
 from pydantic import EmailStr
 import secrets
 import os
-from app.routers import auth
+from app.routers import auth, webhook
 
 app = FastAPI()
 
@@ -257,3 +257,4 @@ async def create_auth_user(user_data: dict):
         raise HTTPException(status_code=500, detail=str(e))
 
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(webhook.router, prefix="/api", tags=["webhooks"])

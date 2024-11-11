@@ -174,13 +174,13 @@ async def create_auth_user(user_data: dict):
         source = user_data.get("source", "signup")
         logger.debug(f"Signup source: {source}")
         
-        # For form submissions (free class, contact), generate temp password
-        is_form_signup = source in ['free_class', 'contact', 'sticky_header']
+        # Add get_started to form signup sources
+        is_form_signup = source in ['free_class', 'contact', 'get_started', 'sticky_header']
         temp_password = ''
 
         if is_form_signup:
             temp_password = secrets.token_urlsafe(12)
-            logger.info(f"Generated temp password for form signup: {user_data['email']}")
+            logger.info(f"Generated temp password for form signup source '{source}': {user_data['email']}")
         else:
             temp_password = user_data.get("password")
             if not temp_password:

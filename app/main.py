@@ -196,28 +196,33 @@ async def create_auth_user(user_data: dict):
                     "healthConditions": user_data.get("healthConditions"),
                     "source": source
                 },
-                "email_confirm": True  # Auto confirm for form signup
+                "email_confirm": True,  # Auto confirm email
+                "password_confirm": False,  # Don't send confirmation email
+                "data": {
+                    "email_confirm_sent": False  # Flag to prevent confirmation email
+                }
             }
         })
 
         if not auth_response.user:
             raise HTTPException(status_code=400, detail="Failed to create auth user")
 
-        # For form signups, send password reset email
-        if is_form_signup:
-            try:
-                # Use reset_password_for_email instead of admin.generate_link
-                reset_response = supabase.auth.reset_password_for_email(
-                    user_data["email"],
-                    options={
-                        "redirect_to": RESET_PASSWORD_URL
+        # Send only password reset email
+        try:
+            reset_response = supabase.auth.reset_password_for_email(
+                user_data["email"],
+                options={
+                    "redirect_to": RESET_PASSWORD_URL,
+                    "template_fields": {
+                        "action_text": "Set Your Password",
+                        "welcome_message": "Welcome to YogForever! Please set your password to complete your account setup."
                     }
-                )
-                logger.info(f"Password reset email sent for form signup: {user_data['email']}")
-            except Exception as e:
-                logger.error(f"Failed to send password reset email: {str(e)}")
-                # Continue even if reset email fails
-                pass
+                }
+            )
+            logger.info(f"Password reset email sent for form signup: {user_data['email']}")
+        except Exception as e:
+            logger.error(f"Failed to send password reset email: {str(e)}")
+            pass
 
         # Create user in database
         await create_user(UserCreate(

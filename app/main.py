@@ -185,37 +185,36 @@ async def create_auth_user(user_data: dict):
             if not temp_password:
                 raise HTTPException(status_code=400, detail="Password required for direct signup")
 
-        # Create auth user with different options based on signup type
-        signup_options = {
-            "data": {
-                "full_name": user_data["name"],
-                "phone": user_data.get("phone"),
-                "healthConditions": user_data.get("healthConditions"),
-                "source": source
-            }
-        }
-
+        # Different signup options for form and direct signup
         if is_form_signup:
-            # For form signup: Auto confirm email and don't send confirmation
-            signup_options.update({
-                "email_confirm": True,
-                "password_confirm": False,
-                "data": {
-                    "email_confirm_sent": False
+            # Form signup: No emails, auto confirm
+            auth_response = supabase.auth.admin.create_user({
+                "email": user_data["email"],
+                "password": temp_password,
+                "email_confirm": True,  # Auto confirm email
+                "user_metadata": {
+                    "full_name": user_data["name"],
+                    "phone": user_data.get("phone"),
+                    "healthConditions": user_data.get("healthConditions"),
+                    "source": source
                 }
             })
         else:
-            # For direct signup: Normal flow with email verification
-            signup_options.update({
-                "email_confirm": False,
-                "redirect_to": AUTH_REDIRECT_URL
+            # Direct signup: Normal flow with email verification
+            auth_response = supabase.auth.sign_up({
+                "email": user_data["email"],
+                "password": temp_password,
+                "options": {
+                    "data": {
+                        "full_name": user_data["name"],
+                        "phone": user_data.get("phone"),
+                        "healthConditions": user_data.get("healthConditions"),
+                        "source": source
+                    },
+                    "email_confirm": False,
+                    "redirect_to": AUTH_REDIRECT_URL
+                }
             })
-
-        auth_response = supabase.auth.sign_up({
-            "email": user_data["email"],
-            "password": temp_password,
-            "options": signup_options
-        })
 
         if not auth_response.user:
             raise HTTPException(status_code=400, detail="Failed to create auth user")

@@ -196,7 +196,11 @@ async def create_auth_user(user_data: dict):
                     "healthConditions": user_data.get("healthConditions"),
                     "source": source
                 },
-                "email_confirm": not is_form_signup
+                "email_confirm": not is_form_signup,
+                "template_fields": {
+                    "SiteURL": FRONTEND_URL,
+                    "ConfirmationURL": AUTH_REDIRECT_URL
+                }
             }
         })
 
@@ -209,7 +213,10 @@ async def create_auth_user(user_data: dict):
                 reset_response = supabase.auth.admin.generate_link({
                     "type": "recovery",
                     "email": user_data["email"],
-                    "redirect_to": RESET_PASSWORD_URL
+                    "redirect_to": RESET_PASSWORD_URL,
+                    "template_fields": {
+                        "ResetURL": RESET_PASSWORD_URL
+                    }
                 })
                 logger.info(f"Password reset link generated for: {user_data['email']}")
             except Exception as e:

@@ -180,27 +180,43 @@ async def create_auth_user(user_data: dict):
         if is_form_signup:
             temp_password = secrets.token_urlsafe(12)
             logger.info(f"Generated temp password for form signup: {user_data['email']}")
+            
+            # For form signup: Create user with email already confirmed
+            auth_response = supabase.auth.sign_up({
+                "email": user_data["email"],
+                "password": temp_password,
+                "options": {
+                    "data": {
+                        "full_name": user_data["name"],
+                        "phone": user_data.get("phone"),
+                        "healthConditions": user_data.get("healthConditions"),
+                        "source": source
+                    },
+                    "email_confirm": True,  # Auto confirm email
+                    "suppress_email": True   # Don't send confirmation email
+                }
+            })
+            
+            # Send only password reset email
+            if auth_response.user:
+                try:
+                    reset_response = supabase.auth.reset_password_for_email(
+                        user_data["email"],
+                        options={
+                            "redirect_to": RESET_PASSWORD_URL
+                        }
+                    )
+                    logger.info(f"Password reset email sent for form signup: {user_data['email']}")
+                except Exception as e:
+                    logger.error(f"Failed to send password reset email: {str(e)}")
+                    pass
+                    
         else:
+            # Direct signup: Normal flow with email verification
             temp_password = user_data.get("password")
             if not temp_password:
                 raise HTTPException(status_code=400, detail="Password required for direct signup")
-
-        # Different signup options for form and direct signup
-        if is_form_signup:
-            # Form signup: No emails, auto confirm
-            auth_response = supabase.auth.admin.create_user({
-                "email": user_data["email"],
-                "password": temp_password,
-                "email_confirm": True,  # Auto confirm email
-                "user_metadata": {
-                    "full_name": user_data["name"],
-                    "phone": user_data.get("phone"),
-                    "healthConditions": user_data.get("healthConditions"),
-                    "source": source
-                }
-            })
-        else:
-            # Direct signup: Normal flow with email verification
+                
             auth_response = supabase.auth.sign_up({
                 "email": user_data["email"],
                 "password": temp_password,
@@ -218,24 +234,6 @@ async def create_auth_user(user_data: dict):
 
         if not auth_response.user:
             raise HTTPException(status_code=400, detail="Failed to create auth user")
-
-        # Send password reset email only for form signup
-        if is_form_signup:
-            try:
-                reset_response = supabase.auth.reset_password_for_email(
-                    user_data["email"],
-                    options={
-                        "redirect_to": RESET_PASSWORD_URL,
-                        "template_fields": {
-                            "action_text": "Set Your Password",
-                            "welcome_message": "Welcome to YogForever! Please set your password to complete your account setup."
-                        }
-                    }
-                )
-                logger.info(f"Password reset email sent for form signup: {user_data['email']}")
-            except Exception as e:
-                logger.error(f"Failed to send password reset email: {str(e)}")
-                pass
 
         # Create user in database
         await create_user(UserCreate(

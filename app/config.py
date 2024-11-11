@@ -69,7 +69,7 @@ PAYMENT_STATUS_MAP = {
 
 # Add FRONTEND_URL and AUTH_REDIRECT_URL
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'https://yogforever.com')
-AUTH_REDIRECT_URL = f"{FRONTEND_URL}/auth?tab=signin"
+AUTH_REDIRECT_URL = f"{FRONTEND_URL}/verify-email"
 RESET_PASSWORD_URL = f"{FRONTEND_URL}/reset-password"
 VERIFY_EMAIL_URL = f"{FRONTEND_URL}/auth"  # New URL for email verification
 

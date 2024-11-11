@@ -3,7 +3,7 @@ from app.services.supabase_service import supabase
 import logging
 from datetime import datetime, timedelta
 
-from backend.app.config import PAISE_TO_RUPEE_CONVERSION
+from app.config import PAISE_TO_RUPEE_CONVERSION
 
 logger = logging.getLogger(__name__)
 

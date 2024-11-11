@@ -1,7 +1,7 @@
 import os
 import logging
 from dotenv import load_dotenv
-from app.services.supabase_service import supabase
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,  # Set to INFO or DEBUG based on your needs

@@ -26,24 +26,26 @@ def extract_payment_details(payload: Dict[str, Any]) -> Dict[str, Any]:
         payment_data = payload.get('payload', {}).get('payment', {}).get('entity', {})
         notes = payment_data.get('notes', {})
         
-        # Get user email from notes or payment data
-        user_email = notes.get('enter_your_signup_email') or payment_data.get('email')
+        # First try to get user_id from notes
+        user_id = notes.get('user_id')
         
-        # Get user_id from database using email
-        user_result = supabase.table('users').select('id').eq('email', user_email).execute()
-        user_id = user_result.data[0]['id'] if user_result.data else None
-        
+        # If no user_id in notes, try to get from email
         if not user_id:
-            logger.warning(f"No user found for email: {user_email}")
+            user_email = notes.get('enter_your_signup_email') or payment_data.get('email')
+            if user_email:
+                user_result = supabase.table('users').select('id').eq('email', user_email).execute()
+                user_id = user_result.data[0]['id'] if user_result.data else None
+        
+        logger.info(f"Found user_id: {user_id} for payment")
         
         return {
             'razorpay_payment_id': payment_data.get('id'),
             'razorpay_order_id': payment_data.get('order_id'),
-            'amount': int(payment_data.get('amount', 0)),  # Ensure amount is integer
+            'amount': int(payment_data.get('amount', 0)),
             'currency': payment_data.get('currency'),
             'status': PAYMENT_STATUS_MAP.get(payment_data.get('status'), 'unknown'),
             'payment_method': payment_data.get('method'),
-            'email': user_email,
+            'email': payment_data.get('email'),
             'contact': payment_data.get('contact'),
             'payment_details': payment_data,
             'user_id': user_id

@@ -172,21 +172,45 @@ async def create_user(user: UserCreate):
 async def create_auth_user(user_data: dict):
     try:
         source = user_data.get("source", "signup")
-        logger.debug(f"Signup source: {source}")
+        logger.info(f"Processing signup request - Source: {source}")
         
-        # Add get_started to form signup sources
         is_form_signup = source in ['free_class', 'contact', 'get_started', 'sticky_header']
-        temp_password = ''
-
+        
         if is_form_signup:
+            # Generate temp password
             temp_password = secrets.token_urlsafe(12)
-            logger.info(f"Generated temp password for form signup source '{source}': {user_data['email']}")
+            
+            # Create auth user first
+            auth_response = supabase.auth.sign_up({
+                "email": user_data["email"],
+                "password": temp_password,
+                "options": {
+                    "data": {
+                        "full_name": user_data["name"],
+                        "phone": user_data.get("phone"),
+                        "healthConditions": user_data.get("healthConditions"),
+                        "source": source
+                    }
+                }
+            })
+            
+            # Then generate password reset link
+            try:
+                reset_response = supabase.auth.admin.generate_link({
+                    "type": "recovery",
+                    "email": user_data["email"],
+                    "redirect_to": f"{FRONTEND_URL}/reset-password"
+                })
+                logger.info(f"Password reset link generated for form signup: {user_data['email']}")
+            except Exception as e:
+                logger.error(f"Failed to generate password reset link: {str(e)}")
+
         else:
             temp_password = user_data.get("password")
             if not temp_password:
                 raise HTTPException(status_code=400, detail="Password required for direct signup")
 
-        # First create the auth user
+        # Create auth user with email verification disabled for form signups
         auth_response = supabase.auth.sign_up({
             "email": user_data["email"],
             "password": temp_password,
@@ -197,25 +221,13 @@ async def create_auth_user(user_data: dict):
                     "healthConditions": user_data.get("healthConditions"),
                     "interest": user_data.get("interest"),
                     "source": source
-                }
+                },
+                "email_confirm": not is_form_signup  # Only require email confirmation for regular signups
             }
         })
 
         if not auth_response.user:
             raise HTTPException(status_code=400, detail="Failed to create auth user")
-
-        # For form signups, immediately trigger password reset
-        if is_form_signup:
-            try:
-                reset_response = supabase.auth.admin.generate_link({
-                    "type": "recovery",
-                    "email": user_data["email"],
-                    "redirect_to": f"{FRONTEND_URL}/reset-password"
-                })
-                logger.info(f"Password reset link generated for: {user_data['email']}")
-            except Exception as e:
-                logger.error(f"Failed to generate password reset link: {str(e)}")
-                # Continue execution as user is already created
 
         # Create user in database
         await create_user(UserCreate(

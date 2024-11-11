@@ -3,7 +3,7 @@ from app.services.supabase_service import supabase
 import logging
 from datetime import datetime, timedelta
 
-from app.config import PAISE_TO_RUPEE_CONVERSION
+from app.config import PAISE_TO_RUPEE_CONVERSION, CURRENCY_CONFIGS
 
 logger = logging.getLogger(__name__)
 
@@ -35,10 +35,17 @@ async def update_payment_record(payment_details: Dict[str, Any]) -> Dict[str, An
     try:
         logger.info(f"Attempting to update payment record: {payment_details}")
         
-        # Convert amount from paise to rupees using config constant
-        if payment_details.get('amount'):
-            payment_details['amount'] = float(payment_details['amount']) / PAISE_TO_RUPEE_CONVERSION
+        # Convert amount from smallest unit to main currency unit
+        if payment_details.get('amount') and payment_details.get('currency'):
+            currency = payment_details['currency']
+            amount = float(payment_details['amount'])
             
+            # Convert from smallest unit (paise/cents) to main unit (rupees/dollars/euros)
+            if currency == 'INR':
+                payment_details['amount'] = amount / PAISE_TO_RUPEE_CONVERSION
+            elif currency in ['USD', 'EUR']:
+                payment_details['amount'] = amount / 100  # Convert cents to dollars/euros
+                
         result = supabase.table('payments').upsert(
             payment_details,
             on_conflict='razorpay_payment_id'

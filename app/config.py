@@ -1,6 +1,7 @@
 import os
 import logging
 from dotenv import load_dotenv
+from app.services.supabase_service import supabase
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,  # Set to INFO or DEBUG based on your needs
@@ -66,6 +67,9 @@ PAYMENT_STATUS_MAP = {
     'failed': 'failed',
     'refunded': 'refunded'
 }
+
+# Add amount conversion constant
+PAISE_TO_RUPEE_CONVERSION = 100
 
 # Add FRONTEND_URL and AUTH_REDIRECT_URL
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'https://yogforever.com')

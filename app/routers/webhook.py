@@ -6,6 +6,7 @@ from app.config import RAZORPAY_WEBHOOK_SECRET, PAYMENT_STATUS_MAP
 import hmac
 import hashlib
 import logging
+from app.services.supabase_service import supabase
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -23,21 +24,33 @@ def extract_payment_details(payload: Dict[str, Any]) -> Dict[str, Any]:
     """Extract relevant payment details from webhook payload"""
     try:
         payment_data = payload.get('payload', {}).get('payment', {}).get('entity', {})
+        notes = payment_data.get('notes', {})
+        
+        # Get user email from notes or payment data
+        user_email = notes.get('enter_your_signup_email') or payment_data.get('email')
+        
+        # Get user_id from database using email
+        user_result = supabase.table('users').select('id').eq('email', user_email).execute()
+        user_id = user_result.data[0]['id'] if user_result.data else None
+        
+        if not user_id:
+            logger.warning(f"No user found for email: {user_email}")
+        
         return {
             'razorpay_payment_id': payment_data.get('id'),
             'razorpay_order_id': payment_data.get('order_id'),
-            'amount': payment_data.get('amount'),
+            'amount': int(payment_data.get('amount', 0)),  # Ensure amount is integer
             'currency': payment_data.get('currency'),
             'status': PAYMENT_STATUS_MAP.get(payment_data.get('status'), 'unknown'),
             'payment_method': payment_data.get('method'),
-            'email': payment_data.get('email'),
+            'email': user_email,
             'contact': payment_data.get('contact'),
-            'payment_details': payment_data,  # Store complete payment details
-            'user_id': payment_data.get('notes', {}).get('user_id')
+            'payment_details': payment_data,
+            'user_id': user_id
         }
     except Exception as e:
         logger.error(f"Error extracting payment details: {str(e)}")
-        raise ValueError("Invalid payment payload structure")
+        raise ValueError(f"Invalid payment payload structure: {str(e)}")
 
 @router.post("/razorpay-webhook", name="razorpay_webhook")
 async def handle_razorpay_webhook(request: Request):

@@ -3,6 +3,8 @@ from app.services.supabase_service import supabase
 import logging
 from datetime import datetime, timedelta
 
+from backend.app.config import PAISE_TO_RUPEE_CONVERSION
+
 logger = logging.getLogger(__name__)
 
 async def process_payment_event(event: str, payment_details: Dict[str, Any]):
@@ -32,7 +34,12 @@ async def update_payment_record(payment_details: Dict[str, Any]) -> Dict[str, An
     """Update or insert payment record in database"""
     try:
         logger.info(f"Attempting to update payment record: {payment_details}")
-        result = await supabase.table('payments').upsert(
+        
+        # Convert amount from paise to rupees using config constant
+        if payment_details.get('amount'):
+            payment_details['amount'] = float(payment_details['amount']) / PAISE_TO_RUPEE_CONVERSION
+            
+        result = supabase.table('payments').upsert(
             payment_details,
             on_conflict='razorpay_payment_id'
         ).execute()

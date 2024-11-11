@@ -39,7 +39,7 @@ def extract_payment_details(payload: Dict[str, Any]) -> Dict[str, Any]:
         logger.error(f"Error extracting payment details: {str(e)}")
         raise ValueError("Invalid payment payload structure")
 
-@router.post("/razorpay-webhook")
+@router.post("/razorpay-webhook", name="razorpay_webhook")
 async def handle_razorpay_webhook(request: Request):
     try:
         # Get raw body and signature

@@ -32,7 +32,7 @@ logging.basicConfig(
 
 # Use actual domain in production
 API_BASE_URL = os.getenv('API_BASE_URL', 'https://api.yogforever.com')
-RAZORPAY_CALLBACK_URL = f"{API_BASE_URL}/api/razorpay-webhook" 
+RAZORPAY_CALLBACK_URL = f"{API_BASE_URL}/razorpay-webhook"
 
 # Supabase credentials (existing setup)
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -71,7 +71,7 @@ PAYMENT_STATUS_MAP = {
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'https://yogforever.com')
 AUTH_REDIRECT_URL = f"{FRONTEND_URL}/auth?tab=signin"
 RESET_PASSWORD_URL = f"{FRONTEND_URL}/reset-password"
-VERIFY_EMAIL_URL = f"{FRONTEND_URL}/auth?tab=signin"
+VERIFY_EMAIL_URL = f"{FRONTEND_URL}/auth"  # New URL for email verification
 
 # Remove localhost fallback
 if not FRONTEND_URL:

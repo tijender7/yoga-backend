@@ -83,27 +83,6 @@ async def create_payment_endpoint(payment_data: dict):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-def handle_webhook_error(e: Exception) -> JSONResponse:
-    error_message = str(e)
-    if "ValidationError" in error_message:
-        logger.warning(f"Received unhandled webhook event: {error_message}")
-        return JSONResponse(
-            status_code=200,  # Return 200 for unhandled events
-            content={
-                "status": "success",
-                "message": "Unhandled webhook event acknowledged"
-            }
-        )
-    
-    logger.error(f"Webhook processing failed: {error_message}")
-    return JSONResponse(
-        status_code=400,
-        content={
-            "status": "error",
-            "message": error_message
-        }
-    )
-
 @app.get("/health")
 async def health_check():
     return {
@@ -247,4 +226,4 @@ async def create_auth_user(user_data: dict):
         raise HTTPException(status_code=500, detail=str(e))
 
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
-app.include_router(webhook.router, prefix="/api", tags=["webhooks"])
+app.include_router(webhook.router)

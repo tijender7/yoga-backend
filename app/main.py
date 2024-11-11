@@ -211,20 +211,19 @@ async def create_auth_user(user_data: dict):
         # For form signups, generate password reset link
         if is_form_signup:
             try:
+                # Generate recovery (password reset) link instead of verification
                 reset_response = supabase.auth.admin.generate_link({
                     "type": "recovery",
                     "email": user_data["email"],
-                    "redirect_to": f"{FRONTEND_URL}/reset-password",
-                    "template_fields": {
-                        "SiteURL": FRONTEND_URL,
-                        "ResetURL": "{{ .ConfirmationURL }}"
+                    "redirect_to": RESET_PASSWORD_URL,
+                    "options": {
+                        "email_confirm": True  # Auto confirm email since it's form signup
                     }
                 })
-                logger.info(f"Password reset link generated for: {user_data['email']}")
+                logger.info(f"Password reset link generated for form signup: {user_data['email']}")
             except Exception as e:
                 logger.error(f"Failed to generate password reset link: {str(e)}")
-                # Continue even if reset link generation fails
-                pass
+                raise HTTPException(status_code=500, detail="Failed to send password reset email")
 
         # Create user in database
         await create_user(UserCreate(

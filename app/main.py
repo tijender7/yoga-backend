@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, Request
 from app.services.razorpay_service import create_payment_link
 from fastapi.middleware.cors import CORSMiddleware
 import logging
-from app.config import AUTH_REDIRECT_URL, FRONTEND_URL, IS_DEVELOPMENT, PAYMENT_STATUS_MAP, RAZORPAY_CALLBACK_URL
+from app.config import AUTH_REDIRECT_URL, FRONTEND_URL, IS_DEVELOPMENT, PAYMENT_STATUS_MAP, RAZORPAY_CALLBACK_URL, RESET_PASSWORD_URL, VERIFY_EMAIL_URL
 from datetime import datetime
 from app.services.supabase_service import supabase
 from fastapi.responses import JSONResponse
@@ -186,34 +186,30 @@ async def create_auth_user(user_data: dict):
                 raise HTTPException(status_code=400, detail="Password required for direct signup")
 
         # Create auth user only once
-        auth_response = supabase.auth.sign_up({
-            "email": user_data["email"],
-            "password": temp_password,
-            "options": {
-                "data": {
-                    "full_name": user_data["name"],
-                    "phone": user_data.get("phone"),
-                    "healthConditions": user_data.get("healthConditions"),
-                    "source": source
-                },
-                "email_confirm": not is_form_signup
-            }
-        })
-
-        if not auth_response.user:
-            raise HTTPException(status_code=400, detail="Failed to create auth user")
-
-        # For form signups, generate password reset link
         if is_form_signup:
             try:
                 reset_response = supabase.auth.admin.generate_link({
                     "type": "recovery",
                     "email": user_data["email"],
-                    "redirect_to": f"{FRONTEND_URL}/reset-password"
+                    "redirect_to": RESET_PASSWORD_URL
                 })
                 logger.info(f"Password reset link generated for: {user_data['email']}")
             except Exception as e:
                 logger.error(f"Failed to generate password reset link: {str(e)}")
+        else:
+            # For regular signup, set verification email redirect
+            try:
+                auth_response = supabase.auth.sign_up({
+                    "email": user_data["email"],
+                    "password": temp_password,
+                    "options": {
+                        "data": user_data,
+                        "email_confirm": True,
+                        "redirect_to": VERIFY_EMAIL_URL
+                    }
+                })
+            except Exception as e:
+                logger.error(f"Failed to create auth user: {str(e)}")
 
         # Create user in database
         await create_user(UserCreate(

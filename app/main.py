@@ -196,12 +196,8 @@ async def create_auth_user(user_data: dict):
                     "healthConditions": user_data.get("healthConditions"),
                     "source": source
                 },
-                "email_confirm": True,
-                "redirect_to": f"{FRONTEND_URL}/verify-email",
-                "template_fields": {
-                    "SiteURL": FRONTEND_URL,
-                    "ConfirmationURL": AUTH_REDIRECT_URL
-                }
+                "email_confirm": True,  # Auto confirm for form signup
+                "redirect_to": RESET_PASSWORD_URL if is_form_signup else AUTH_REDIRECT_URL
             }
         })
 

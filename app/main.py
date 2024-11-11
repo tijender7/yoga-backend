@@ -196,30 +196,28 @@ async def create_auth_user(user_data: dict):
                     "healthConditions": user_data.get("healthConditions"),
                     "source": source
                 },
-                "email_confirm": True,  # Auto confirm for form signup
-                "redirect_to": RESET_PASSWORD_URL if is_form_signup else AUTH_REDIRECT_URL
+                "email_confirm": True  # Auto confirm for form signup
             }
         })
 
         if not auth_response.user:
             raise HTTPException(status_code=400, detail="Failed to create auth user")
 
-        # For form signups, generate password reset link
+        # For form signups, send password reset email
         if is_form_signup:
             try:
-                # Generate recovery (password reset) link instead of verification
-                reset_response = supabase.auth.admin.generate_link({
-                    "type": "recovery",
-                    "email": user_data["email"],
-                    "redirect_to": RESET_PASSWORD_URL,
-                    "options": {
-                        "email_confirm": True  # Auto confirm email since it's form signup
+                # Use reset_password_for_email instead of admin.generate_link
+                reset_response = supabase.auth.reset_password_for_email(
+                    user_data["email"],
+                    options={
+                        "redirect_to": RESET_PASSWORD_URL
                     }
-                })
-                logger.info(f"Password reset link generated for form signup: {user_data['email']}")
+                )
+                logger.info(f"Password reset email sent for form signup: {user_data['email']}")
             except Exception as e:
-                logger.error(f"Failed to generate password reset link: {str(e)}")
-                raise HTTPException(status_code=500, detail="Failed to send password reset email")
+                logger.error(f"Failed to send password reset email: {str(e)}")
+                # Continue even if reset email fails
+                pass
 
         # Create user in database
         await create_user(UserCreate(

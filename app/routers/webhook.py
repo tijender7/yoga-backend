@@ -42,27 +42,30 @@ def extract_payment_details(payload: Dict[str, Any]) -> Dict[str, Any]:
 @router.post("/razorpay-webhook")
 async def handle_razorpay_webhook(request: Request):
     try:
-        # Get raw body for signature verification
+        # Get raw body and signature
         raw_body = await request.body()
         body_text = raw_body.decode()
-        
-        # Get Razorpay signature from headers
         signature = request.headers.get('x-razorpay-signature')
+        
+        logger.info(f"Received webhook with signature: {signature}")
+        
         if not signature:
+            logger.error("Missing webhook signature")
             raise HTTPException(status_code=400, detail="Missing webhook signature")
             
-        # Verify webhook signature
+        # Verify signature
         if not verify_webhook_signature(body_text, signature):
+            logger.error("Invalid webhook signature")
             raise HTTPException(status_code=400, detail="Invalid webhook signature")
             
-        # Parse webhook payload
+        # Parse payload
         payload = await request.json()
-        logger.info(f"Received webhook event: {payload.get('event')}")
+        logger.info(f"Processing webhook event: {payload.get('event')}")
         
-        # Extract payment details
+        # Extract and process payment details
         payment_details = extract_payment_details(payload)
+        logger.info(f"Extracted payment details: {payment_details}")
         
-        # Process the payment event
         await process_payment_event(
             event=payload.get('event'),
             payment_details=payment_details
@@ -73,15 +76,9 @@ async def handle_razorpay_webhook(request: Request):
             content={"status": "success", "message": "Webhook processed successfully"}
         )
         
-    except ValueError as e:
-        logger.warning(f"Validation error in webhook: {str(e)}")
-        return JSONResponse(
-            status_code=400,
-            content={"status": "error", "message": str(e)}
-        )
     except Exception as e:
-        logger.error(f"Error processing webhook: {str(e)}")
+        logger.error(f"Webhook processing error: {str(e)}")
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "message": "Internal server error"}
+            content={"status": "error", "message": str(e)}
         )

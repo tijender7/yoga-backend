@@ -32,7 +32,7 @@ logging.basicConfig(
 
 # Use actual domain in production
 API_BASE_URL = os.getenv('API_BASE_URL', 'https://api.yogforever.com')
-RAZORPAY_CALLBACK_URL = f"{API_BASE_URL}/razorpay-webhook"
+RAZORPAY_CALLBACK_URL = f"{API_BASE_URL}/api/razorpay-webhook" 
 
 # Supabase credentials (existing setup)
 SUPABASE_URL = os.getenv("SUPABASE_URL")

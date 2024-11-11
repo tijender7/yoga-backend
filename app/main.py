@@ -83,16 +83,6 @@ async def create_payment_endpoint(payment_data: dict):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/razorpay-webhook")
-async def razorpay_webhook(request: Request):
-    try:
-        payload = await request.json()
-        logger.info(f"Received webhook: {payload}")
-        return {"status": "success"}
-    except Exception as e:
-        logger.error(f"Webhook error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
 def handle_webhook_error(e: Exception) -> JSONResponse:
     error_message = str(e)
     if "ValidationError" in error_message:

@@ -31,14 +31,17 @@ async def process_payment_event(event: str, payment_details: Dict[str, Any]):
 async def update_payment_record(payment_details: Dict[str, Any]) -> Dict[str, Any]:
     """Update or insert payment record in database"""
     try:
+        logger.info(f"Attempting to update payment record: {payment_details}")
         result = await supabase.table('payments').upsert(
             payment_details,
             on_conflict='razorpay_payment_id'
         ).execute()
         
         if not result.data:
+            logger.error("No data returned from payment record update")
             raise Exception("Failed to update payment record")
             
+        logger.info(f"Payment record updated successfully: {result.data[0]}")
         return result.data[0]
         
     except Exception as e:

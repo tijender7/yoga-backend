@@ -33,10 +33,22 @@ def extract_payment_details(payload: Dict[str, Any]) -> Dict[str, Any]:
         if not user_id:
             user_email = notes.get('enter_your_signup_email') or payment_data.get('email')
             if user_email:
-                user_result = supabase.table('users').select('id').eq('email', user_email).execute()
-                user_id = user_result.data[0]['id'] if user_result.data else None
-        
-        logger.info(f"Found user_id: {user_id} for payment")
+                try:
+                    # Be explicit about using public.users
+                    user_result = supabase.from_('public.users').select('id').eq('email', user_email).execute()
+                    user_id = user_result.data[0]['id'] if user_result.data else None
+                    
+                    # If not found in public.users, try auth.users as fallback
+                    if not user_id:
+                        auth_result = supabase.from_('auth.users').select('id').eq('email', user_email).execute()
+                        user_id = auth_result.data[0]['id'] if auth_result.data else None
+                        
+                    logger.info(f"Found user_id: {user_id} for email: {user_email}")
+                    
+                except Exception as e:
+                    logger.error(f"Error finding user by email: {str(e)}")
+                    # Continue without user_id, it will be handled by payment policy
+                    pass
         
         return {
             'razorpay_payment_id': payment_data.get('id'),

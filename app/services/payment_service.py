@@ -61,3 +61,24 @@ async def update_payment_record(payment_details: Dict[str, Any]) -> Dict[str, An
     except Exception as e:
         logger.error(f"Error updating payment record: {str(e)}")
         raise
+
+async def is_duplicate_event(event_id: str) -> bool:
+    """Check if event has already been processed"""
+    try:
+        result = await supabase.table('webhook_events').select('id').eq('event_id', event_id).execute()
+        return bool(result.data)
+    except Exception as e:
+        logger.error(f"Error checking duplicate event: {str(e)}")
+        return False
+
+async def store_webhook_event(event_id: str, event_type: str, payload: dict):
+    """Store webhook event for idempotency"""
+    try:
+        await supabase.table('webhook_events').insert({
+            'event_id': event_id,
+            'event_type': event_type,
+            'payload': payload,
+            'processed_at': datetime.now().isoformat()
+        }).execute()
+    except Exception as e:
+        logger.error(f"Error storing webhook event: {str(e)}")

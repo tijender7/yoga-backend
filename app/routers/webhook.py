@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import JSONResponse
 from typing import Dict, Any
-from app.services.payment_service import process_payment_event
+from app.services.payment_service import is_duplicate_event, process_payment_event
 from app.config import RAZORPAY_WEBHOOK_SECRET, PAYMENT_STATUS_MAP
 import hmac
 import hashlib
 import logging
 from app.services.supabase_service import supabase
+from fastapi import BackgroundTasks
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -34,7 +35,7 @@ def extract_payment_details(payload: Dict[str, Any]) -> Dict[str, Any]:
             user_email = notes.get('enter_your_signup_email') or payment_data.get('email')
             if user_email:
                 try:
-                    # Remove public. prefix, just use 'users'
+                    # Use public.users table
                     user_result = supabase.table('users').select('id').eq('email', user_email).execute()
                     user_id = user_result.data[0]['id'] if user_result.data else None
                     logger.info(f"Found user_id: {user_id} for email: {user_email}")
@@ -61,10 +62,19 @@ def extract_payment_details(payload: Dict[str, Any]) -> Dict[str, Any]:
 @router.post("/razorpay-webhook", name="razorpay_webhook")
 async def handle_razorpay_webhook(request: Request):
     try:
-        # Get raw body and signature
         raw_body = await request.body()
         body_text = raw_body.decode()
         signature = request.headers.get('x-razorpay-signature')
+        
+        # Missing: Event ID Check for duplicate events
+        event_id = request.headers.get('x-razorpay-event-id')
+        
+        # Should return 200 even if event is duplicate
+        if event_id and await is_duplicate_event(event_id):
+            return JSONResponse(
+                status_code=200,
+                content={"status": "success", "message": "Event already processed"}
+            )
         
         logger.info(f"Received webhook with signature: {signature}")
         
@@ -85,14 +95,22 @@ async def handle_razorpay_webhook(request: Request):
         payment_details = extract_payment_details(payload)
         logger.info(f"Extracted payment details: {payment_details}")
         
-        await process_payment_event(
-            event=payload.get('event'),
-            payment_details=payment_details
-        )
+        # 1. Quick verification
+        if not verify_webhook_signature(body_text, signature):
+            return JSONResponse(
+                status_code=400,
+                content={"status": "error", "message": "Invalid signature"}
+            )
+            
+        # 2. Quick acknowledgment
+        background_tasks = BackgroundTasks()
+        background_tasks.add_task(process_payment_event, payload.get('event'), payment_details)
         
+        # 3. Immediate response
         return JSONResponse(
             status_code=200,
-            content={"status": "success", "message": "Webhook processed successfully"}
+            content={"status": "success", "message": "Webhook received"},
+            background=background_tasks
         )
         
     except Exception as e:
@@ -101,3 +119,11 @@ async def handle_razorpay_webhook(request: Request):
             status_code=500,
             content={"status": "error", "message": str(e)}
         )
+
+@router.get("/razorpay-webhook/health", name="webhook_health")
+async def webhook_health():
+    """Health check endpoint for Razorpay"""
+    return JSONResponse(
+        status_code=200,
+        content={"status": "healthy"}
+    )

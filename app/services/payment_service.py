@@ -10,6 +10,11 @@ logger = logging.getLogger(__name__)
 async def process_payment_event(event: str, payment_details: Dict[str, Any]):
     """Process different payment events and update database accordingly"""
     try:
+        # Skip payment ID check for downtime events
+        if 'downtime' in event:
+            logger.info(f"Processing downtime event: {event}")
+            return
+            
         if not payment_details.get('razorpay_payment_id'):
             raise ValueError("Payment ID not found in webhook data")
 

@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from app.models.auth import EmailCheck
 from app.services.supabase_service import supabase
 import logging
+from app.utils.logging_utils import mask_email, get_error_code
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -9,7 +10,9 @@ logger = logging.getLogger(__name__)
 @router.post("/check-email")
 async def check_email_exists(data: EmailCheck):
     try:
-        logger.debug(f"Checking email: {data.email}")
+        # Log with masked email
+        masked = mask_email(data.email)
+        logger.debug(f"Processing email check: {masked}")
         
         # Use public users table instead of admin API
         result = supabase.table('users') \
@@ -19,13 +22,18 @@ async def check_email_exists(data: EmailCheck):
             
         exists = len(result.data) > 0
         
+        # Log result without exposing email
+        logger.debug(f"Email check completed: {'exists' if exists else 'not found'}")
+        
         return {
             "exists": exists,
             "message": "Email check completed"
         }
     except Exception as e:
-        logger.error(f"Error checking email: {str(e)}", exc_info=True)
+        # Log error with code but without sensitive data
+        error_code = get_error_code(e)
+        logger.error(f"Email check failed: {error_code}")
         raise HTTPException(
             status_code=500, 
-            detail=f"Failed to check email: {str(e)}"
+            detail="Failed to process email check"
         )

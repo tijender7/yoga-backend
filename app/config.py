@@ -1,35 +1,64 @@
 import os
 import logging
+from logging.handlers import RotatingFileHandler
 from dotenv import load_dotenv
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,  # Set to INFO or DEBUG based on your needs
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+def setup_logging():
+    """Configure logging with security and rotation"""
+    log_level = logging.WARNING if os.getenv('ENVIRONMENT', 'production') == 'production' else logging.INFO
+    
+    # Create logs directory if it doesn't exist
+    log_dir = 'logs'
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    
+    # Setup rotating file handler
+    file_handler = RotatingFileHandler(
+        os.path.join(log_dir, 'app.log'),
+        maxBytes=10000000,  # 10MB
+        backupCount=5
+    )
+    
+    # Setup console handler
+    console_handler = logging.StreamHandler()
+    
+    # Common formatter
+    formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    
+    file_handler.setFormatter(formatter)
+    console_handler.setFormatter(formatter)
+    
+    # Root logger configuration
+    root_logger = logging.getLogger()
+    root_logger.setLevel(log_level)
+    root_logger.addHandler(file_handler)
+    root_logger.addHandler(console_handler)
+    
+    # Set specific logger levels
+    logging.getLogger('app.main').setLevel(log_level)
+    logging.getLogger('app.services').setLevel(log_level)
+    
+    # Disable propagation of sensitive loggers
+    logging.getLogger('supabase').propagate = False
+    logging.getLogger('razorpay').propagate = False
 
-# Optionally, set levels for specific loggers
-logging.getLogger('app.main').setLevel(logging.DEBUG)
-logging.getLogger('app.services').setLevel(logging.INFO)
-
-# Load environment variables from .env
+# Load environment variables
 load_dotenv()
 
-
-
-# config.py mein ya main file ke top par
+# Environment setup
 ENVIRONMENT = os.getenv('ENVIRONMENT', 'production')
 DEBUG = ENVIRONMENT == 'development'
 IS_DEVELOPMENT = DEBUG
 
-print(f"ENVIRONMENT: {ENVIRONMENT}")  # Debug ke liye
-print(f"IS_DEVELOPMENT: {DEBUG}")  # Debug ke liye
+# Initialize logging
+setup_logging()
 
-logging.basicConfig(
-    level=logging.INFO if not DEBUG else logging.DEBUG,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    filename='production.log' if not DEBUG else None
-)
+# Log startup without sensitive data
+logger = logging.getLogger(__name__)
+logger.info(f"Application starting in {ENVIRONMENT} mode")
 
 # Use actual domain in production
 API_BASE_URL = os.getenv('API_BASE_URL', 'https://api.yogforever.com')

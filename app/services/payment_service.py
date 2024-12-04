@@ -67,7 +67,9 @@ async def update_payment_record(payment_details: Dict[str, Any]) -> Dict[str, An
             logger.error("No data returned from payment record update")
             raise Exception("Failed to update payment record")
             
-        logger.info(f"Payment record updated successfully: {result.data[0]}")
+        # Mask the result data before logging
+        masked_result = mask_sensitive_data(result.data[0])
+        logger.info("Payment record updated successfully")
         return result.data[0]
         
     except Exception as e:

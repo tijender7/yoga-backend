@@ -85,8 +85,8 @@ logger.info("Payment gateway configuration loaded successfully")
 if not API_BASE_URL:
     raise ValueError("API_BASE_URL must be set in the environment variables")
 
-logger.info(f"[CONFIG] API_BASE_URL set to: {API_BASE_URL}")
-logger.info(f"[CONFIG] RAZORPAY_CALLBACK_URL set to: {RAZORPAY_CALLBACK_URL}")
+# Remove sensitive URL logging
+logger.info("API and callback URLs configured successfully")
 
 # Payment status mapping
 PAYMENT_STATUS_MAP = {
